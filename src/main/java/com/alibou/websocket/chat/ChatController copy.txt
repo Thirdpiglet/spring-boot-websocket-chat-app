@@ -1,0 +1,92 @@
+package com.alibou.websocket.chat;
+
+import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.stereotype.Controller;
+
+@Controller
+@RequiredArgsConstructor
+public class ChatController {
+
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatMessageService chatMessageService; // nieuw: service injectie
+
+    // =========================
+    // Verstuur bericht
+    // =========================
+    @MessageMapping("/chat.sendMessage")
+    public void sendMessage(@Payload ChatMessage chatMessage) {
+        // Opslaan in database
+        chatMessageService.save(chatMessage);
+
+        // Versturen naar alle clients in de room
+        String room = chatMessage.getRoom();
+        messagingTemplate.convertAndSend("/topic/room." + room, chatMessage);
+    }
+
+    // =========================
+    // Voeg gebruiker toe
+    // =========================
+    // @MessageMapping("/chat.addUser")
+    // public void addUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+    //     // Username en room in session
+    //     headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
+    //     headerAccessor.getSessionAttributes().put("room", chatMessage.getRoom());
+
+    //     // Verstuur join bericht naar de room
+    //     messagingTemplate.convertAndSend("/topic/room." + chatMessage.getRoom(), chatMessage);
+    // }
+
+    @MessageMapping("/chat.addUser")
+    public void addUser(@Payload ChatMessage chatMessage, 
+                        SimpMessageHeaderAccessor headerAccessor) {
+
+        // 1️⃣ Username en room opslaan in session
+        headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
+        headerAccessor.getSessionAttributes().put("room", chatMessage.getRoom());
+
+        // 2️⃣ History ophalen via de service
+        List<ChatMessage> history = chatMessageService.findByRoom(chatMessage.getRoom());
+
+        // 3️⃣ Alleen naar deze gebruiker sturen
+        messagingTemplate.convertAndSendToUser(
+                headerAccessor.getSessionId(),
+                "/queue/history",
+                history
+        );
+
+        // 4️⃣ JOIN bericht naar alle clients in de room
+        messagingTemplate.convertAndSend(
+                "/topic/room." + chatMessage.getRoom(),
+                chatMessage
+        );
+    }
+
+    @MessageMapping("/chat.loadHistory")
+    public void loadHistory(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+        String room = chatMessage.getRoom();
+
+        headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
+        headerAccessor.getSessionAttributes().put("room", room);
+
+        List<ChatMessage> history = chatMessageService.findByRoom(room);
+
+        // Log wat er wordt gestuurd
+        // System.out.println("!@#$ Sending history to " + chatMessage.getSender() + " in room " + room
+        //    + ", messages count=" + history.size());
+
+        // Stuur alles in één keer als array
+        messagingTemplate.convertAndSendToUser(
+            headerAccessor.getSessionId(),
+            "/queue/history",
+            history
+        );
+    }
+
+}

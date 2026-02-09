@@ -19,11 +19,8 @@ var colors = [
 
 const subscribedRooms = new Set();
 
-// =========================
-// Subscribe naar live berichten
-// =========================
 function subscribeRoom(room) {
-    if (subscribedRooms.has(room)) return;
+    if (subscribedRooms.has(room)) return; // al gedaan
     subscribedRooms.add(room);
 
     stompClient.subscribe(`/topic/room.${room}`, function(payload) {
@@ -35,7 +32,7 @@ function subscribeRoom(room) {
 // Connect functie
 // =========================
 function connect() {
-    if (stompClient && stompClient.connected) return;
+    if (stompClient && stompClient.connected) return; // voorkom dubbele connect
 
     username = document.querySelector('#name')?.value.trim() || 'Anonymous';
     room = document.querySelector('#room')?.value.trim() || room || "general";
@@ -47,7 +44,9 @@ function connect() {
         var socket = new SockJS('/ws');
         stompClient = Stomp.over(socket);
 
-        stompClient.connect({}, onConnected, onError);
+        stompClient.connect({}, function () {
+            onConnected();
+        }, onError);
     }
 }
 
@@ -55,29 +54,46 @@ function connect() {
 // Bij connect
 // =========================
 function onConnected() {
-    if (!stompClient || !stompClient.connected) return;
+    //console.log("!@#$ ALLERBEGIN van function onConnected() {");
 
-    // Live berichten
+    if (!stompClient || !stompClient.connected) return;
+    //console.log("NA if (!stompClient || !stompClient.connected) return;");
+
+    // 1️⃣ Subscribe naar live berichten van de huidige room
     subscribeRoom(room);
 
-    // Historische berichten
+    // 2️⃣ Subscribe naar de queue voor historische berichten
     stompClient.subscribe(`/user/queue/history`, function(payload) {
+        //console.log("!@#$ HISTORIE ontvangen"); 
+
         var data = JSON.parse(payload.body);
 
+        // check of het een array is (option-2 server-side)
         if (Array.isArray(data)) {
             data.forEach(msg => displayMessage(msg, true));
         } else {
             displayMessage(data, true);
         }
+
+        //console.log(">>>>!@#$ HISTORIE data:", data);
     });
 
-    // Historie ophalen
-    stompClient.send("/app/chat.loadHistory", {}, JSON.stringify({sender: username, room: room}));
+    // 3️⃣ Historische berichten expliciet ophalen na subscriptions
+    stompClient.send("/app/chat.loadHistory",
+        {},
+        JSON.stringify({sender: username, room: room})
+    );
 
-    // JOIN event
-    stompClient.send("/app/chat.addUser", {}, JSON.stringify({sender: username, type: 'JOIN', room: room}));
+    // 4️⃣ JOIN event pas daarna
+    stompClient.send("/app/chat.addUser",
+        {},
+        JSON.stringify({sender: username, type: 'JOIN', room: room})
+    );
 
+    // 5️⃣ Nu connecting-element verbergen
     connectingElement.classList.add('hidden');
+
+    //console.log("!@#$ EINDE onConnected()");
 }
 
 // =========================
@@ -113,28 +129,33 @@ function displayMessage(message, isHistory = false) {
     var messageElement = document.createElement('li');
 
     if (isHistory) {
-        // 1️⃣ Historische berichten compact
-        messageElement.className = 'history-message';
+        // Voeg aparte CSS-klasse toe
+        messageElement.classList.add('history-message');
 
+        // Datum/tijd formatteren
         var timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
-        var hh = String(timestamp.getHours()).padStart(2,'0');
-        var mm = String(timestamp.getMinutes()).padStart(2,'0');
+        var hh = String(timestamp.getHours()).padStart(2, '0');
+        var mm = String(timestamp.getMinutes()).padStart(2, '0');
         var yyyy = timestamp.getFullYear();
-        var mmth = String(timestamp.getMonth()+1).padStart(2,'0');
-        var dd = String(timestamp.getDate()).padStart(2,'0');
+        var mmth = String(timestamp.getMonth() + 1).padStart(2, '0');
+        var dd = String(timestamp.getDate()).padStart(2, '0');
         var dateStr = `${yyyy}${mmth}${dd} ${hh}:${mm}`;
 
+        // Initiaal van afzender
         var senderInitial = message.sender ? message.sender[0] : '?';
         messageElement.textContent = `${dateStr}, ${senderInitial}: ${message.content}`;
 
-        // Historie bovenaan
+        // Historische berichten bovenaan toevoegen
         messageArea.prepend(messageElement);
 
     } else {
-        // 2️⃣ Live berichten blijven zoals nu
-        if (message.type === 'JOIN' || message.type === 'LEAVE') {
+        // Live berichten blijven zoals voorheen
+        if (message.type === 'JOIN') {
             messageElement.classList.add('event-message');
-            message.content = message.type === 'JOIN' ? `${message.sender} joined!` : `${message.sender} left!`;
+            message.content = message.sender + ' joined!';
+        } else if (message.type === 'LEAVE') {
+            messageElement.classList.add('event-message');
+            message.content = message.sender + ' left!';
         } else {
             messageElement.classList.add('chat-message');
 
@@ -155,6 +176,7 @@ function displayMessage(message, isHistory = false) {
         messageArea.appendChild(messageElement);
     }
 
+    // Scroll altijd naar onder
     messageArea.scrollTop = messageArea.scrollHeight;
 }
 
@@ -172,6 +194,8 @@ function getAvatarColor(messageSender) {
 // =========================
 // Event listeners
 // =========================
+
+// Form submit vrije input
 if (usernameForm) {
     usernameForm.addEventListener('submit', function(event){
         connect();
@@ -179,23 +203,36 @@ if (usernameForm) {
     }, true);
 }
 
+// Versturen van chatbericht
 if (messageForm) {
     messageForm.addEventListener('submit', sendMessage, true);
 }
 
+// =========================
 // Predefined-room buttons
+// =========================
 document.querySelectorAll('.predefined-rooms button').forEach(button => {
     button.addEventListener('click', function() {
         let newRoom = button.getAttribute('data-room');
         if (!newRoom) return;
+
+        // Unsubscribe van oude room (indien mogelijk)
+        // stompClient.unsubscribe(subscriptionId); // optioneel als je een ID bewaart
 
         room = newRoom;
 
         if (!stompClient || !stompClient.connected) {
             connect();
         } else {
-            stompClient.send("/app/chat.addUser", {}, JSON.stringify({sender: username, type: 'JOIN', room: room}));
-            stompClient.send("/app/chat.loadHistory", {}, JSON.stringify({sender: username, room: room}));
+            // Alleen JOIN en loadHistory sturen, niet extra subscribe
+            stompClient.send("/app/chat.addUser",
+                {},
+                JSON.stringify({sender: username, type: 'JOIN', room: room})
+            );
+            stompClient.send("/app/chat.loadHistory",
+                {},
+                JSON.stringify({sender: username, room: room})
+            );
         }
     });
 });

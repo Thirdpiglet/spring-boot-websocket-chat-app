@@ -1,7 +1,6 @@
 package com.alibou.websocket.config;
 
 import com.alibou.websocket.chat.ChatMessage;
-import com.alibou.websocket.chat.MessageType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -19,16 +18,29 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        String username = (String) headerAccessor.getSessionAttributes().get("username");
-        if (username != null) {
-            log.info("user disconnected: {}", username);
-            var chatMessage = ChatMessage.builder()
-                    .type(MessageType.LEAVE)
+        var sessionAttributes = headerAccessor.getSessionAttributes();
+        if (sessionAttributes == null) {
+            return;
+        }
+
+        String username = (String) sessionAttributes.get("username");
+        String room = (String) sessionAttributes.get("room");
+
+        if (username != null && room != null) {
+            log.info("user disconnected: {} from room {}", username, room);
+
+            ChatMessage chatMessage = ChatMessage.builder()
+                    .type(ChatMessage.MessageType.LEAVE) // nested enum
                     .sender(username)
+                    .room(room) // belangrijk!
                     .build();
-            messagingTemplate.convertAndSend("/topic/public", chatMessage);
+
+            messagingTemplate.convertAndSend(
+                    "/topic/room." + room,
+                    chatMessage
+            );
         }
     }
-
 }

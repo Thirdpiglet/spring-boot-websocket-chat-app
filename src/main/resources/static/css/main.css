@@ -239,6 +239,14 @@ button.accent {
     width: 100%;
 }
 
+/* Historische berichten klein en subtiel */
+.history-message {
+    font-size: 0.75em;
+    line-height: 1.1em;
+    margin: 1px 0;
+    color: #666;
+    list-style: none;
+}
 
 @media screen and (max-width: 730px) {
 
