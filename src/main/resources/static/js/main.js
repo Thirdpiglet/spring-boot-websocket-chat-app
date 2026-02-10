@@ -1,26 +1,89 @@
 'use strict';
 
-var usernamePage = document.querySelector('#username-page');
-var chatPage = document.querySelector('#chat-page');
-var usernameForm = document.querySelector('#usernameForm');
-var messageForm = document.querySelector('#messageForm');
-var messageInput = document.querySelector('#message');
-var messageArea = document.querySelector('#messageArea');
-var connectingElement = document.querySelector('.connecting');
+// =========================
+// Globale variabelen
+// =========================
+let stompClient = null;
+let username = null;
+let room = null;
+const subscribedRooms = new Set();
 
-var stompClient = null;
-var username = null;
-var room = null;
-
-var colors = [
+const colors = [
     '#2196F3', '#32c787', '#00BCD4', '#ff5652',
     '#ffc107', '#ff85af', '#FF9800', '#39bbb0'
 ];
 
-const subscribedRooms = new Set();
+const usernamePage = document.querySelector('#username-page');
+const chatPage = document.querySelector('#chat-page');
+const usernameForm = document.querySelector('#usernameForm');
+const messageForm = document.querySelector('#messageForm');
+const messageInput = document.querySelector('#message');
+const messageArea = document.querySelector('#messageArea');
+const connectingElement = document.querySelector('.connecting');
+
+// WEG WEG WEG WEG WEG WEG WEG WEG WEG >>>>
+console.log("🔥 main.js geladen, Versie 3.0 🔥");
+console.log("main.js geladen, SockJS versie:", SockJS.version);
+// WEG WEG WEG WEG WEG WEG WEG WEG WEG <<<<
+
 
 // =========================
-// Subscribe naar live berichten
+// Helper: Avatar kleur
+// =========================
+function getAvatarColor(messageSender) {
+    let hash = 0;
+    for (let i = 0; i < messageSender.length; i++) {
+        hash = 31 * hash + messageSender.charCodeAt(i);
+    }
+    return colors[Math.abs(hash % colors.length)];
+}
+
+// =========================
+// Display message
+// =========================
+function displayMessage(message, isHistory = false) {
+    const messageElement = document.createElement('li');
+
+    if (isHistory) {
+        messageElement.className = 'history-message';
+        const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
+        const hh = String(timestamp.getHours()).padStart(2, '0');
+        const mm = String(timestamp.getMinutes()).padStart(2, '0');
+        const yyyy = timestamp.getFullYear();
+        const mmth = String(timestamp.getMonth() + 1).padStart(2, '0');
+        const dd = String(timestamp.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}${mmth}${dd} ${hh}:${mm}`;
+        const senderInitial = message.sender ? message.sender[0] : '?';
+        messageElement.textContent = `${dateStr}, ${senderInitial}: ${message.content}`;
+        messageArea.prepend(messageElement);
+    } else {
+        if (message.type === 'JOIN' || message.type === 'LEAVE') {
+            messageElement.classList.add('event-message');
+            message.content = message.type === 'JOIN' ? `${message.sender} joined!` : `${message.sender} left!`;
+        } else {
+            messageElement.classList.add('chat-message');
+            const avatarElement = document.createElement('i');
+            avatarElement.textContent = message.sender[0];
+            avatarElement.style['background-color'] = getAvatarColor(message.sender);
+            messageElement.appendChild(avatarElement);
+
+            const usernameElement = document.createElement('span');
+            usernameElement.textContent = message.sender;
+            messageElement.appendChild(usernameElement);
+        }
+
+        const textElement = document.createElement('p');
+        textElement.textContent = message.content;
+        messageElement.appendChild(textElement);
+
+        messageArea.appendChild(messageElement);
+    }
+
+    messageArea.scrollTop = messageArea.scrollHeight;
+}
+
+// =========================
+// Subscribe naar room
 // =========================
 function subscribeRoom(room) {
     if (subscribedRooms.has(room)) return;
@@ -32,59 +95,53 @@ function subscribeRoom(room) {
 }
 
 // =========================
-// Connect functie
+// Connect
 // =========================
-function connect() {
+function connect(event) {
     if (stompClient && stompClient.connected) return;
 
-    username = document.querySelector('#name')?.value.trim() || 'Anonymous';
-    room = document.querySelector('#room')?.value.trim() || room || "general";
+    username = username || document.querySelector('#name')?.value.trim() || 'Anonymous';
+    room = room || "general";
 
-    if (username && room) {
-        usernamePage.classList.add('hidden');
-        chatPage.classList.remove('hidden');
+    if (!username || !room) return;
 
-        var socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
+    usernamePage.classList.add('hidden');
+    chatPage.classList.remove('hidden');
 
-        stompClient.connect({}, onConnected, onError);
-    }
+    const socket = new SockJS('/ws');
+    stompClient = Stomp.over(socket);
+
+    socket.onopen = () => console.log("Web Socket Opened...");
+    socket.onclose = () => console.log("Web Socket Closed...");
+    socket.onerror = (err) => console.error("Web Socket Error", err);
+
+    stompClient.connect({}, onConnected, onError);
+
+    if (event) event.preventDefault();
 }
 
 // =========================
 // Bij connect
 // =========================
 function onConnected() {
-    if (!stompClient || !stompClient.connected) return;
-
-    // Live berichten
+    console.log("STOMP connected:", stompClient.connected);
     subscribeRoom(room);
 
-    // Historische berichten
-    stompClient.subscribe(`/user/queue/history`, function(payload) {
-        var data = JSON.parse(payload.body);
-
-        if (Array.isArray(data)) {
-            data.forEach(msg => displayMessage(msg, true));
-        } else {
-            displayMessage(data, true);
-        }
-    });
-
-    // Historie ophalen
-    stompClient.send("/app/chat.loadHistory", {}, JSON.stringify({sender: username, room: room}));
-
     // JOIN event
-    stompClient.send("/app/chat.addUser", {}, JSON.stringify({sender: username, type: 'JOIN', room: room}));
+    stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+        sender: username,
+        type: 'JOIN',
+        room: room
+    }));
 
     connectingElement.classList.add('hidden');
 }
 
 // =========================
-// Foutafhandeling
+// Error handling
 // =========================
 function onError(error) {
-    connectingElement.textContent = 'Could not connect to WebSocket server. Please refresh this page to try again!';
+    connectingElement.textContent = 'Could not connect to WebSocket server. Refresh page!';
     connectingElement.style.color = 'red';
 }
 
@@ -92,9 +149,9 @@ function onError(error) {
 // Verstuur bericht
 // =========================
 function sendMessage(event) {
-    var messageContent = messageInput.value.trim();
-    if (messageContent && stompClient) {
-        var chatMessage = {
+    const messageContent = messageInput.value.trim();
+    if (messageContent && stompClient && stompClient.connected) {
+        const chatMessage = {
             sender: username,
             content: messageContent,
             type: 'CHAT',
@@ -103,82 +160,15 @@ function sendMessage(event) {
         stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
         messageInput.value = '';
     }
-    event.preventDefault();
-}
-
-// =========================
-// Display message helper
-// =========================
-function displayMessage(message, isHistory = false) {
-    var messageElement = document.createElement('li');
-
-    if (isHistory) {
-        // 1️⃣ Historische berichten compact
-        messageElement.className = 'history-message';
-
-        var timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
-        var hh = String(timestamp.getHours()).padStart(2,'0');
-        var mm = String(timestamp.getMinutes()).padStart(2,'0');
-        var yyyy = timestamp.getFullYear();
-        var mmth = String(timestamp.getMonth()+1).padStart(2,'0');
-        var dd = String(timestamp.getDate()).padStart(2,'0');
-        var dateStr = `${yyyy}${mmth}${dd} ${hh}:${mm}`;
-
-        var senderInitial = message.sender ? message.sender[0] : '?';
-        messageElement.textContent = `${dateStr}, ${senderInitial}: ${message.content}`;
-
-        // Historie bovenaan
-        messageArea.prepend(messageElement);
-
-    } else {
-        // 2️⃣ Live berichten blijven zoals nu
-        if (message.type === 'JOIN' || message.type === 'LEAVE') {
-            messageElement.classList.add('event-message');
-            message.content = message.type === 'JOIN' ? `${message.sender} joined!` : `${message.sender} left!`;
-        } else {
-            messageElement.classList.add('chat-message');
-
-            var avatarElement = document.createElement('i');
-            avatarElement.textContent = message.sender[0];
-            avatarElement.style['background-color'] = getAvatarColor(message.sender);
-            messageElement.appendChild(avatarElement);
-
-            var usernameElement = document.createElement('span');
-            usernameElement.textContent = message.sender;
-            messageElement.appendChild(usernameElement);
-        }
-
-        var textElement = document.createElement('p');
-        textElement.textContent = message.content;
-        messageElement.appendChild(textElement);
-
-        messageArea.appendChild(messageElement);
-    }
-
-    messageArea.scrollTop = messageArea.scrollHeight;
-}
-
-// =========================
-// Avatar kleur
-// =========================
-function getAvatarColor(messageSender) {
-    var hash = 0;
-    for (var i = 0; i < messageSender.length; i++) {
-        hash = 31 * hash + messageSender.charCodeAt(i);
-    }
-    return colors[Math.abs(hash % colors.length)];
+    if (event) event.preventDefault();
 }
 
 // =========================
 // Event listeners
 // =========================
 if (usernameForm) {
-    usernameForm.addEventListener('submit', function(event){
-        connect();
-        event.preventDefault();
-    }, true);
+    usernameForm.addEventListener('submit', connect, true);
 }
-
 if (messageForm) {
     messageForm.addEventListener('submit', sendMessage, true);
 }
@@ -186,16 +176,24 @@ if (messageForm) {
 // Predefined-room buttons
 document.querySelectorAll('.predefined-rooms button').forEach(button => {
     button.addEventListener('click', function() {
-        let newRoom = button.getAttribute('data-room');
+        const newRoom = button.getAttribute('data-room');
         if (!newRoom) return;
 
         room = newRoom;
-
         if (!stompClient || !stompClient.connected) {
-            connect();
+            connect(new Event('submit'));
         } else {
-            stompClient.send("/app/chat.addUser", {}, JSON.stringify({sender: username, type: 'JOIN', room: room}));
-            stompClient.send("/app/chat.loadHistory", {}, JSON.stringify({sender: username, room: room}));
+            stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+                sender: username,
+                type: 'JOIN',
+                room: room
+            }));
         }
     });
 });
+
+// =========================
+// Debug logs
+// =========================
+console.log("main.js geladen, Versie 2.3");
+console.log("main.js geladen, SockJS versie:", SockJS.version);

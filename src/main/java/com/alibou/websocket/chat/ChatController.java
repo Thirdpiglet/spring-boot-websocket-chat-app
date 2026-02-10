@@ -20,10 +20,22 @@ public class ChatController {
     // =========================
     // Verstuur bericht
     // =========================
+    // @MessageMapping("/chat.sendMessage")
+    // public void sendMessage(@Payload ChatMessage chatMessage) {
+    //     chatMessageService.save(chatMessage);
+    //     messagingTemplate.convertAndSend("/topic/room." + chatMessage.getRoom(), chatMessage);
+    // }
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage) {
+
+        System.out.println("🔥 SENDMESSAGE called: " + chatMessage);
+
         chatMessageService.save(chatMessage);
-        messagingTemplate.convertAndSend("/topic/room." + chatMessage.getRoom(), chatMessage);
+
+        System.out.println("🔥 AFTER SAVE");
+
+        String room = chatMessage.getRoom();
+        messagingTemplate.convertAndSend("/topic/room." + room, chatMessage);
     }
 
     // =========================

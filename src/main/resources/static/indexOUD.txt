@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-
+    <meta charset="UTF-8">
+    
     <!-- 1️⃣ SockJS client (correcte versie) -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.1.4/dist/sockjs.min.js"></script>
 
@@ -12,12 +12,10 @@
 
     <!-- 3️⃣ Jouw eigen JS -->
     <!-- <script src="/static/main.js"></script> -->
-    <script src="/js/main.js?v=2.6"></script>
+    <script src="/js/main.js?v=2.3"></script>
 
     <title>Chat Teet</title>
-
     <link rel="stylesheet" href="css/main.css" />
-
     <style>
         /* Extra styling voor knoppen */
         .predefined-rooms {
@@ -37,7 +35,6 @@
                 flex: 1 1 100%;
             }
         }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -45,32 +42,27 @@
     <h2>Sorry! Your browser doesn't support Javascript</h2>
 </noscript>
 
-<!-- ========================= -->
-<!-- Username / Room pagina -->
-<!-- ========================= -->
 <div id="username-page">
     <div class="username-page-container">
         <h1 class="title">Chatten als Teet</h1>
         <form id="usernameForm" name="usernameForm">
+            <!-- Username vooraf ingevuld -->
             <input type="hidden" id="name" value="Teet" />
 
             <div class="form-group predefined-rooms">
-                <button type="button" data-room="teetfam">Chatten met Familie</button>
-                <button type="button" data-room="teettoine">Chatten met Toine</button>
-                <button type="button" data-room="teetilona">Chatten met Ilona</button>
-                <button type="button" data-room="teetsandra">Chatten met Sandra</button>
-                <button type="button" data-room="teetolga">Chatten met Olga</button>
-                <button type="button" data-room="teetstoffel">Chatten met Stoffel</button>
-                <button type="button" data-room="teetdave">Chatten met Dave</button>
-                <button type="button" data-room="teeterik">Chatten met Erik</button>
+                <button type="button" class="primary" data-room="teetfam">Chatten met Familie</button>
+                <button type="button" class="primary" data-room="teettoine">Chatten met Toine</button>
+                <button type="button" class="primary" data-room="teetilona">Chatten met Ilona</button>
+                <button type="button" class="primary" data-room="teetsandra">Chatten met Sandra</button>
+                <button type="button" class="primary" data-room="teetolga">Chatten met Olga</button>
+                <button type="button" class="primary" data-room="teetstoffel">Chatten met Stoffel</button>
+                <button type="button" class="primary" data-room="teetdave">Chatten met Dave</button>
+                <button type="button" class="primary" data-room="teeterik">Chatten met Erik</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- Chat pagina -->
-<!-- ========================= -->
 <div id="chat-page" class="hidden">
     <div class="chat-container">
         <div class="chat-header">
@@ -89,30 +81,27 @@
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- JS dependencies & main.js -->
-<!-- ========================= -->
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.1.4/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script src="/js/main.js?v=2.4"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="/js/main.js"></script>
 <script>
 'use strict';
 
-// Predefined room buttons, sturen connectie naar main.js
+// Buttons voor predefined rooms
 document.querySelectorAll('.predefined-rooms button').forEach(button => {
     button.addEventListener('click', function() {
+        // Username komt uit hidden input
         const usernameInput = document.querySelector('#name');
         const username = usernameInput ? usernameInput.value : 'Teet';
+
+        // Room van de knop
         const room = button.getAttribute('data-room');
 
+        // Start connectie
         if (username && room) {
             window.username = username;
             window.room = room;
-
-            // Stuur een submit event zodat connect() in main.js wordt aangeroepen
-            const event = new Event('submit');
-            connect(event);
+            connect(new Event('submit'));
         }
     });
 });
