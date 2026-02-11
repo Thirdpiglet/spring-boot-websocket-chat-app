@@ -1,199 +1,252 @@
 'use strict';
 
-// =========================
-// Globale variabelen
-// =========================
-let stompClient = null;
-let username = null;
-let room = null;
-const subscribedRooms = new Set();
+document.addEventListener("DOMContentLoaded", () => {
 
-const colors = [
-    '#2196F3', '#32c787', '#00BCD4', '#ff5652',
-    '#ffc107', '#ff85af', '#FF9800', '#39bbb0'
-];
+    console.log("🔥 main.js geladen, Versie 4.1 🔥");
+    console.log("SockJS versie:", SockJS?.version);
 
-const usernamePage = document.querySelector('#username-page');
-const chatPage = document.querySelector('#chat-page');
-const usernameForm = document.querySelector('#usernameForm');
-const messageForm = document.querySelector('#messageForm');
-const messageInput = document.querySelector('#message');
-const messageArea = document.querySelector('#messageArea');
-const connectingElement = document.querySelector('.connecting');
+    // =========================
+    // Globale variabelen
+    // =========================
+    let stompClient = null;
+    let username = null;
+    let room = null;
+    const subscribedRooms = new Set();
 
-// WEG WEG WEG WEG WEG WEG WEG WEG WEG >>>>
-console.log("🔥 main.js geladen, Versie 3.0 🔥");
-console.log("main.js geladen, SockJS versie:", SockJS.version);
-// WEG WEG WEG WEG WEG WEG WEG WEG WEG <<<<
+    const colors = [
+        '#2196F3', '#32c787', '#00BCD4', '#ff5652',
+        '#ffc107', '#ff85af', '#FF9800', '#39bbb0'
+    ];
 
+    // =========================
+    // DOM elementen
+    // =========================
+    const usernamePage = document.querySelector('#username-page');
+    const chatPage = document.querySelector('#chat-page');
+    const usernameForm = document.querySelector('#usernameForm');
+    const messageForm = document.querySelector('#messageForm');
+    const messageInput = document.querySelector('#message');
+    const messageArea = document.querySelector('#messageArea');
+    const connectingElement = document.querySelector('.connecting');
+    const roomButtons = document.querySelectorAll('.predefined-rooms button');
 
-// =========================
-// Helper: Avatar kleur
-// =========================
-function getAvatarColor(messageSender) {
-    let hash = 0;
-    for (let i = 0; i < messageSender.length; i++) {
-        hash = 31 * hash + messageSender.charCodeAt(i);
+    if (!usernamePage || !chatPage || !messageArea) {
+        console.error("❌ DOM elementen ontbreken — check HTML IDs");
+        return;
     }
-    return colors[Math.abs(hash % colors.length)];
-}
 
-// =========================
-// Display message
-// =========================
-function displayMessage(message, isHistory = false) {
-    const messageElement = document.createElement('li');
+    // =========================
+    // Avatar kleur
+    // =========================
+    function getAvatarColor(messageSender) {
+        let hash = 0;
+        for (let i = 0; i < messageSender.length; i++) {
+            hash = 31 * hash + messageSender.charCodeAt(i);
+        }
+        return colors[Math.abs(hash % colors.length)];
+    }
 
-    if (isHistory) {
-        messageElement.className = 'history-message';
-        const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
-        const hh = String(timestamp.getHours()).padStart(2, '0');
-        const mm = String(timestamp.getMinutes()).padStart(2, '0');
-        const yyyy = timestamp.getFullYear();
-        const mmth = String(timestamp.getMonth() + 1).padStart(2, '0');
-        const dd = String(timestamp.getDate()).padStart(2, '0');
-        const dateStr = `${yyyy}${mmth}${dd} ${hh}:${mm}`;
-        const senderInitial = message.sender ? message.sender[0] : '?';
-        messageElement.textContent = `${dateStr}, ${senderInitial}: ${message.content}`;
-        messageArea.prepend(messageElement);
-    } else {
-        if (message.type === 'JOIN' || message.type === 'LEAVE') {
-            messageElement.classList.add('event-message');
-            message.content = message.type === 'JOIN' ? `${message.sender} joined!` : `${message.sender} left!`;
+    // =========================
+    // Display message
+    // =========================
+    function displayMessage(message, isHistory = false) {
+
+        const messageElement = document.createElement('li');
+
+        if (isHistory) {
+            messageElement.className = 'history-message';
+
+            const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
+            const hh = String(timestamp.getHours()).padStart(2, '0');
+            const mm = String(timestamp.getMinutes()).padStart(2, '0');
+
+            messageElement.textContent =
+                `${hh}:${mm} ${message.sender}: ${message.content}`;
+
+            messageArea.prepend(messageElement);
+
         } else {
-            messageElement.classList.add('chat-message');
-            const avatarElement = document.createElement('i');
-            avatarElement.textContent = message.sender[0];
-            avatarElement.style['background-color'] = getAvatarColor(message.sender);
-            messageElement.appendChild(avatarElement);
 
-            const usernameElement = document.createElement('span');
-            usernameElement.textContent = message.sender;
-            messageElement.appendChild(usernameElement);
+            if (message.type === 'JOIN' || message.type === 'LEAVE') {
+                messageElement.classList.add('event-message');
+                message.content =
+                    message.type === 'JOIN'
+                        ? `${message.sender} joined!`
+                        : `${message.sender} left!`;
+            } else {
+
+                messageElement.classList.add('chat-message');
+
+                const avatarElement = document.createElement('i');
+
+                const name = message.sender?.toLowerCase();
+
+                const avatars = {
+                    toine: '/toineAvatar.webp',
+                    ilona: '/ilonaAvatar.webp',
+                    sandra: '/sandraAvatar.webp',
+                    olga: '/olgaAvatar.webp',
+                    stoffel: '/stoffelAvatar.webp',
+                    anne: '/anneAvatar.webp',
+                    teet: '/leontineAvatar.webp'
+                };
+
+                if (avatars[name]) {
+                    const img = document.createElement('img');
+                    img.src = avatars[name];
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.borderRadius = '50%';
+                    img.style.objectFit = 'cover';
+                    avatarElement.appendChild(img);
+                } else {
+                    avatarElement.textContent = message.sender?.[0] ?? '?';
+                    avatarElement.style.backgroundColor =
+                        getAvatarColor(message.sender ?? '?');
+                }
+
+                messageElement.appendChild(avatarElement);
+
+                const usernameElement = document.createElement('span');
+                usernameElement.textContent = message.sender;
+                messageElement.appendChild(usernameElement);
+            }
+
+            const textElement = document.createElement('p');
+            textElement.textContent = message.content;
+            messageElement.appendChild(textElement);
+
+            messageArea.appendChild(messageElement);
         }
 
-        const textElement = document.createElement('p');
-        textElement.textContent = message.content;
-        messageElement.appendChild(textElement);
-
-        messageArea.appendChild(messageElement);
+        messageArea.scrollTop = messageArea.scrollHeight;
     }
 
-    messageArea.scrollTop = messageArea.scrollHeight;
-}
+    // =========================
+    // Subscribe room
+    // =========================
+    function subscribeRoom(roomName) {
+        if (subscribedRooms.has(roomName)) return;
 
-// =========================
-// Subscribe naar room
-// =========================
-function subscribeRoom(room) {
-    if (subscribedRooms.has(room)) return;
-    subscribedRooms.add(room);
+        subscribedRooms.add(roomName);
 
-    stompClient.subscribe(`/topic/room.${room}`, function(payload) {
-        displayMessage(JSON.parse(payload.body));
-    });
-}
+        stompClient.subscribe(`/topic/room.${roomName}`, payload => {
+            displayMessage(JSON.parse(payload.body));
+        });
+    }
 
-// =========================
-// Connect
-// =========================
-function connect(event) {
-    if (stompClient && stompClient.connected) return;
+    // =========================
+    // Connect
+    // =========================
+    function connect(event) {
 
-    username = username || document.querySelector('#name')?.value.trim() || 'Anonymous';
-    room = room || "general";
+        if (stompClient?.connected) return;
 
-    if (!username || !room) return;
+        username =
+            username ||
+            document.querySelector('#name')?.value.trim() ||
+            'Anonymous';
 
-    usernamePage.classList.add('hidden');
-    chatPage.classList.remove('hidden');
+        room = room || 'general';
 
-    const socket = new SockJS('/ws');
-    stompClient = Stomp.over(socket);
+        if (!username || !room) return;
 
-    socket.onopen = () => console.log("Web Socket Opened...");
-    socket.onclose = () => console.log("Web Socket Closed...");
-    socket.onerror = (err) => console.error("Web Socket Error", err);
+        usernamePage.classList.add('hidden');
+        chatPage.classList.remove('hidden');
 
-    stompClient.connect({}, onConnected, onError);
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
 
-    if (event) event.preventDefault();
-}
+        socket.onopen = () => console.log("🟢 WebSocket open");
+        socket.onclose = () => console.log("🔴 WebSocket closed");
+        socket.onerror = err => console.error("WebSocket error", err);
 
-// =========================
-// Bij connect
-// =========================
-function onConnected() {
-    console.log("STOMP connected:", stompClient.connected);
-    subscribeRoom(room);
+        stompClient.connect({}, onConnected, onError);
 
-    // JOIN event
-    stompClient.send("/app/chat.addUser", {}, JSON.stringify({
-        sender: username,
-        type: 'JOIN',
-        room: room
-    }));
+        event?.preventDefault();
+    }
 
-    connectingElement.classList.add('hidden');
-}
+    // =========================
+    // On connected
+    // =========================
+    function onConnected() {
 
-// =========================
-// Error handling
-// =========================
-function onError(error) {
-    connectingElement.textContent = 'Could not connect to WebSocket server. Refresh page!';
-    connectingElement.style.color = 'red';
-}
+        console.log("✅ STOMP connected");
 
-// =========================
-// Verstuur bericht
-// =========================
-function sendMessage(event) {
-    const messageContent = messageInput.value.trim();
-    if (messageContent && stompClient && stompClient.connected) {
-        const chatMessage = {
+        subscribeRoom(room);
+
+        stompClient.send("/app/chat.addUser", {}, JSON.stringify({
             sender: username,
-            content: messageContent,
-            type: 'CHAT',
-            room: room
-        };
-        stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-        messageInput.value = '';
+            type: 'JOIN',
+            room
+        }));
+
+        connectingElement?.classList.add('hidden');
     }
-    if (event) event.preventDefault();
-}
 
-// =========================
-// Event listeners
-// =========================
-if (usernameForm) {
-    usernameForm.addEventListener('submit', connect, true);
-}
-if (messageForm) {
-    messageForm.addEventListener('submit', sendMessage, true);
-}
+    // =========================
+    // Error
+    // =========================
+    function onError(error) {
+        console.error(error);
 
-// Predefined-room buttons
-document.querySelectorAll('.predefined-rooms button').forEach(button => {
-    button.addEventListener('click', function() {
-        const newRoom = button.getAttribute('data-room');
-        if (!newRoom) return;
-
-        room = newRoom;
-        if (!stompClient || !stompClient.connected) {
-            connect(new Event('submit'));
-        } else {
-            stompClient.send("/app/chat.addUser", {}, JSON.stringify({
-                sender: username,
-                type: 'JOIN',
-                room: room
-            }));
+        if (connectingElement) {
+            connectingElement.textContent =
+                'Could not connect to WebSocket server.';
+            connectingElement.style.color = 'red';
         }
-    });
-});
+    }
 
-// =========================
-// Debug logs
-// =========================
-console.log("main.js geladen, Versie 2.3");
-console.log("main.js geladen, SockJS versie:", SockJS.version);
+    // =========================
+    // Send message
+    // =========================
+    function sendMessage(event) {
+
+        const content = messageInput.value.trim();
+
+        if (content && stompClient?.connected) {
+
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({
+                sender: username,
+                content,
+                type: 'CHAT',
+                room
+            }));
+
+            messageInput.value = '';
+        }
+
+        event?.preventDefault();
+    }
+
+    // =========================
+    // Event listeners
+    // =========================
+    usernameForm?.addEventListener('submit', connect);
+    messageForm?.addEventListener('submit', sendMessage);
+
+    roomButtons.forEach(button => {
+
+        button.addEventListener('click', () => {
+
+            const newRoom = button.dataset.room;
+            if (!newRoom) return;
+
+            room = newRoom;
+
+            console.log("➡️ Room gekozen:", room);
+
+            if (!stompClient?.connected) {
+                connect(new Event('submit'));
+            } else {
+                stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+                    sender: username,
+                    type: 'JOIN',
+                    room
+                }));
+            }
+        });
+    });
+
+    console.log("🧹 main.js init klaar");
+});

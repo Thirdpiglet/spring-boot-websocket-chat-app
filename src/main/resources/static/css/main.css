@@ -1,10 +1,14 @@
+/* =========================
+   RESET / BASIS
+========================= */
+
 * {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
 }
 
-html,body {
+html, body {
     height: 100%;
     overflow: hidden;
 }
@@ -18,8 +22,9 @@ body {
     line-height: 1.58;
     color: #333;
     background-color: #f4f4f4;
-    height: 100%;
 }
+
+/* ========================= */
 
 .clearfix:after {
     display: block;
@@ -30,6 +35,10 @@ body {
 .hidden {
     display: none;
 }
+
+/* =========================
+   FORMS
+========================= */
 
 .form-control {
     width: 100%;
@@ -52,13 +61,13 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 20px;
 }
 
-h1 {
-    font-size: 1.7em;
-}
-
 a {
     color: #6db33f;
 }
+
+/* =========================
+   BUTTONS BASIS
+========================= */
 
 button {
     box-shadow: none;
@@ -69,58 +78,144 @@ button {
     white-space: nowrap;
     vertical-align: middle;
     padding: 0.6rem 1rem;
-    border-radius: 2px;
+    border-radius: 12px;
     transition: all 0.2s ease-in-out;
     cursor: pointer;
     min-height: 38px;
 }
 
-button.default {
-    background-color: #e8e8e8;
-    color: #333;
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.12);
-}
-
 button.primary {
     background-color: #6db33f;
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 2px rgba(0,0,0,.12);
     color: #fff;
 }
 
-button.accent {
-    background-color: #6db33f;
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.12);
-    color: #fff;
-}
+/* =========================
+   USERNAME PAGE LAYOUT
+========================= */
 
 #username-page {
-    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .username-page-container {
     background: #fff;
-    box-shadow: 0 1px 11px rgba(0, 0, 0, 0.27);
-    border-radius: 2px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    border-radius: 18px;
     width: 100%;
-    max-width: 500px;
-    display: inline-block;
-    margin-top: 42px;
-    vertical-align: middle;
+    max-width: 420px;
+    padding: 34px 32px 38px;
+}
+
+/* =========================
+   ROOM BUTTON GRID
+========================= */
+
+.predefined-rooms {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+/* Familie bovenaan */
+
+.predefined-rooms button[data-room="teetfam"] {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 85%;
+    background: linear-gradient(135deg, #ffe082, #ffca28);
+    font-weight: 700;
+}
+
+/* =========================
+   ROOM BUTTON STYLING
+========================= */
+
+.predefined-rooms button {
     position: relative;
-    padding: 35px 55px 35px;
-    min-height: 250px;
+    padding: 14px 14px 14px 58px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    background: #f3f4f6;
+    text-align: left;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.predefined-rooms button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.18);
+}
+
+/* =========================
+   AVATAR IN BUTTON
+========================= */
+
+.predefined-rooms button::before {
+    content: "";
     position: absolute;
+    left: 14px;
     top: 50%;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    margin-top: -160px;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #c7c7c7;
+    background-size: cover;
+    background-position: center;
 }
 
-.username-page-container .username-submit {
-    margin-top: 10px;
+/* =========================
+   SPECIFIEKE AVATARS
+========================= */
+
+button[data-room="teetfam"]::before {
+    background-image: url("/familieAvatar.webp");
 }
 
+button[data-room="teettoine"]::before {
+    background-image: url("/toineAvatar.webp");
+}
+
+button[data-room="teet"]::before,
+button[data-room="teeterik"]::before {
+    background-image: url("/leontineAvatar.webp");
+}
+
+button[data-room="teetilona"]::before {
+    background-image: url("/ilonaAvatar.webp");
+}
+
+button[data-room="teetsandra"]::before {
+    background-image: url("/sandraAvatar.webp");
+}
+
+button[data-room="teetolga"]::before {
+    background-image: url("/olgaAvatar.webp");
+}
+
+button[data-room="teetstoffel"]::before {
+    background-image: url("/stoffelAvatar.webp");
+}
+
+button[data-room="teeterik"]::before {
+    background-image: url("/erikAvatar.webp");
+}
+
+button[data-room="teetanne"]::before {
+    background-image: url("/anneAvatar.webp");
+}
+
+/* Shane / Owen / Dave = geen avatar → grijs blijft */
+
+/* =========================
+   CHAT PAGE
+========================= */
 
 #chat-page {
     position: relative;
@@ -129,52 +224,46 @@ button.accent {
 
 .chat-container {
     max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 30px auto;
     background-color: #fff;
     box-shadow: 0 1px 11px rgba(0, 0, 0, 0.27);
-    margin-top: 30px;
     height: calc(100% - 60px);
     max-height: 600px;
     position: relative;
 }
 
+/* ========================= */
+
 #chat-page ul {
     list-style-type: none;
     background-color: #FFF;
     margin: 0;
-    overflow: auto;
     overflow-y: scroll;
-    padding: 0 20px 0px 20px;
+    padding: 0 20px;
     height: calc(100% - 150px);
 }
 
-#chat-page #messageForm {
-    padding: 20px;
-}
+/* ========================= */
 
 #chat-page ul li {
     line-height: 1.5rem;
     padding: 10px 20px;
-    margin: 0;
     border-bottom: 1px solid #f4f4f4;
 }
 
-#chat-page ul li p {
-    margin: 0;
-}
+/* ========================= */
 
 #chat-page .event-message {
     width: 100%;
     text-align: center;
-    clear: both;
 }
 
 #chat-page .event-message p {
     color: #777;
     font-size: 14px;
-    word-wrap: break-word;
 }
+
+/* ========================= */
 
 #chat-page .chat-message {
     padding-left: 68px;
@@ -187,8 +276,6 @@ button.accent {
     height: 42px;
     overflow: hidden;
     left: 10px;
-    display: inline-block;
-    vertical-align: middle;
     font-size: 18px;
     line-height: 42px;
     color: #fff;
@@ -207,17 +294,7 @@ button.accent {
     color: #43464b;
 }
 
-#messageForm .input-group input {
-    float: left;
-    width: calc(100% - 85px);
-}
-
-#messageForm .input-group button {
-    float: left;
-    width: 80px;
-    height: 38px;
-    margin-left: 5px;
-}
+/* ========================= */
 
 .chat-header {
     text-align: center;
@@ -230,6 +307,8 @@ button.accent {
     font-weight: 500;
 }
 
+/* ========================= */
+
 .connecting {
     padding-top: 5px;
     text-align: center;
@@ -239,7 +318,10 @@ button.accent {
     width: 100%;
 }
 
-/* Historische berichten klein en subtiel */
+/* =========================
+   HISTORY
+========================= */
+
 .history-message {
     font-size: 0.75em;
     line-height: 1.1em;
@@ -248,48 +330,49 @@ button.accent {
     list-style: none;
 }
 
+/* =========================
+   RESPONSIVE
+========================= */
+
 @media screen and (max-width: 730px) {
 
     .chat-container {
-        margin-left: 10px;
-        margin-right: 10px;
-        margin-top: 10px;
+        margin: 10px;
     }
 }
 
 @media screen and (max-width: 480px) {
-    .chat-container {
-        height: calc(100% - 30px);
-    }
 
     .username-page-container {
-        width: auto;
-        margin-left: 15px;
-        margin-right: 15px;
-        padding: 25px;
+        margin: 0 14px;
+        padding: 24px;
+    }
+
+    .predefined-rooms {
+        grid-template-columns: 1fr;
+    }
+
+    .predefined-rooms button[data-room="teetfam"] {
+        width: 100%;
     }
 
     #chat-page ul {
         height: calc(100% - 120px);
     }
 
-    #messageForm .input-group button {
-        width: 65px;
-    }
-
-    #messageForm .input-group input {
-        width: calc(100% - 70px);
-    }
-
-    .chat-header {
-        padding: 10px;
-    }
-
-    .connecting {
-        top: 60px;
-    }
-
     .chat-header h2 {
         font-size: 1.1em;
     }
+}
+
+/* =========================
+   FORCE PAGE SWITCH
+========================= */
+
+#username-page.hidden {
+    display: none !important;
+}
+
+#chat-page.hidden {
+    display: none !important;
 }

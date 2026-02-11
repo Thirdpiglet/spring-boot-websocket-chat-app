@@ -50,19 +50,23 @@
 <!-- ========================= -->
 <div id="username-page">
     <div class="username-page-container">
-        <h1 class="title">Chatten als Teet</h1>
         <form id="usernameForm" name="usernameForm">
             <input type="hidden" id="name" value="Teet" />
 
             <div class="form-group predefined-rooms">
-                <button type="button" data-room="teetfam">Chatten met Familie</button>
                 <button type="button" data-room="teettoine">Chatten met Toine</button>
                 <button type="button" data-room="teetilona">Chatten met Ilona</button>
                 <button type="button" data-room="teetsandra">Chatten met Sandra</button>
                 <button type="button" data-room="teetolga">Chatten met Olga</button>
                 <button type="button" data-room="teetstoffel">Chatten met Stoffel</button>
+                <button type="button" data-room="teetanne">Chatten met Anne</button>
+                <button type="button" data-room="teetadrie">Chatten met Adrie</button>
+                <button type="button" data-room="teetpaddy">Chatten met Paddy</button>
+                <button type="button" data-room="teetshane">Chatten met Shane</button>
+                <button type="button" data-room="teetowen">Chatten met Owen</button>
                 <button type="button" data-room="teetdave">Chatten met Dave</button>
                 <button type="button" data-room="teeterik">Chatten met Erik</button>
+                <button type="button" data-room="teetfam">Chatten met Familie</button>
             </div>
         </form>
     </div>
@@ -89,33 +93,26 @@
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- JS dependencies & main.js -->
-<!-- ========================= -->
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.1.4/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script src="/js/main.js?v=2.4"></script>
-
 <script>
 'use strict';
 
 // Predefined room buttons, sturen connectie naar main.js
-document.querySelectorAll('.predefined-rooms button').forEach(button => {
-    button.addEventListener('click', function() {
-        const usernameInput = document.querySelector('#name');
-        const username = usernameInput ? usernameInput.value : 'Teet';
-        const room = button.getAttribute('data-room');
+// document.querySelectorAll('.predefined-rooms button').forEach(button => {
+//     button.addEventListener('click', function() {
+//         const usernameInput = document.querySelector('#name');
+//         const username = usernameInput ? usernameInput.value : 'Teet';
+//         const room = button.getAttribute('data-room');
 
-        if (username && room) {
-            window.username = username;
-            window.room = room;
+//         if (username && room) {
+//             window.username = username;
+//             window.room = room;
 
-            // Stuur een submit event zodat connect() in main.js wordt aangeroepen
-            const event = new Event('submit');
-            connect(event);
-        }
-    });
-});
+//             // Stuur een submit event zodat connect() in main.js wordt aangeroepen
+//             const event = new Event('submit');
+//             connect(event);
+//         }
+//     });
+// });
 </script>
 </body>
 </html>
